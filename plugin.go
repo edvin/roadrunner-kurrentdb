@@ -2,7 +2,6 @@ package rrkurrentdb
 
 import (
 	"context"
-	"fmt"
 	"github.com/roadrunner-server/errors"
 	"go.uber.org/zap"
 )
@@ -44,7 +43,6 @@ func (s *Plugin) Init(cfg Configurer, log Logger) error {
 func (s *Plugin) Serve() chan error {
 	const op = errors.Op("kurrentdb plugin serve")
 	s.log.Info("kurrentdb plugin serve")
-	fmt.Println("kurrentdb plugin serve")
 	return nil
 }
 

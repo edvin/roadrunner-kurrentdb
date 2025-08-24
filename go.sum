@@ -1,3 +1,5 @@
+github.com/kurrent-io/KurrentDB-Client-Go v1.0.1 h1:D8BNaTZokj+4e3+2VFDP3mvyMEftzQtfLUyuxyiAa0o=
+github.com/kurrent-io/KurrentDB-Client-Go v1.0.1/go.mod h1:l+X8SYEvZxNKOQXCGouLIaV/XyzDE/NwNscBOiv6DCw=
 github.com/roadrunner-server/endure v1.4.6 h1:YogRSfh0sEvIEyhXh0K3aAzL0Ngim7d5Mx2QZkvgX6o=
 github.com/roadrunner-server/endure v1.4.6/go.mod h1:KZBQ4gz8H0znndK698fQyWxVpw3SYmbG2nHEszC5ijI=
 github.com/roadrunner-server/errors v1.4.1 h1:LKNeaCGiwd3t8IaL840ZNF3UA9yDQlpvHnKddnh0YRQ=

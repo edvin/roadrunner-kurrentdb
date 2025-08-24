@@ -177,7 +177,7 @@ owner = "roadrunner-server"
 repository = "tcp"
 
 [github.plugins.kurrentdb]
-ref = "v1.0.0"
+ref = "main"
 owner = "edvin"
 repository = "roadrunner-kurrentdb"
 replace = "/Users/edvin/projects/roadrunner-kurrentdb"
