@@ -1,0 +1,4 @@
+version: '3'
+
+kurrentdb:
+  address: esdb://some.cloud

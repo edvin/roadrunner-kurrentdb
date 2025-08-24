@@ -1,0 +1,13 @@
+services:
+  velox:
+    container_name: velox
+    environment:
+      - CGO_ENABLED=0
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: "build -c=/etc/velox.toml -o=/tmp/"
+# uncomment this line if you need to copy the RR binary into the host OS
+#    volumes:
+#      - /tmp:/tmp:rw
