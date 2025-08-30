@@ -3,49 +3,31 @@ package rrkurrentdb
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/kurrent-io/KurrentDB-Client-Go/kurrentdb"
 )
 
 type AppendToStreamRequest struct {
 	// The stream to read from
-	Stream string `json:"stream"`
+	Stream string `msgpack:"Stream"`
 	// A length of time to use for gRPC deadlines.
-	Deadline *time.Duration `json:"deadline"`
+	Deadline *int64 `msgpack:"Deadline"`
 	// Requires the request to be performed by the leader of the cluster.
-	RequiresLeader bool         `json:"requiresLeader"`
-	StreamState    *StreamState `json:"streamState"`
+	RequiresLeader bool        `msgpack:"RequiresLeader"`
+	StreamState    StreamState `msgpack:"StreamState"`
 	// Events
-	Events []kurrentdb.EventData `json:"events"`
-}
-
-func (request *AppendToStreamRequest) GetStreamState() kurrentdb.StreamState {
-	switch request.StreamState.Kind {
-	case "StreamExists":
-		return kurrentdb.StreamExists{}
-	case "NoStream":
-		return kurrentdb.NoStream{}
-	case "Any":
-		return kurrentdb.Any{}
-	case "Revision":
-		if request.StreamState.Revision == nil {
-			return kurrentdb.Any{}
-		}
-		return kurrentdb.Revision(*request.StreamState.Revision)
-	default:
-		panic(fmt.Sprintf("unknown streamState %q", request.StreamState))
-	}
+	Events []kurrentdb.EventData `msgpack:"Events"`
 }
 
 func (rpc *RPC) AppendToStream(in *AppendToStreamRequest, out *kurrentdb.WriteResult) error {
-	rpc.plugin.log.Debug(fmt.Sprintf("About to writ: %+v", in))
+	rpc.plugin.log.Debug(fmt.Sprintf("About to write: %+v", in))
+
 	writeResult, err := rpc.plugin.Client.AppendToStream(
 		context.Background(),
 		in.Stream,
 		kurrentdb.AppendToStreamOptions{
-			StreamState:    in.GetStreamState(),
-			Deadline:       in.Deadline,
+			StreamState:    in.StreamState.ToKurrentDBStreamState(),
+			Deadline:       deadlineMsToDuration(in.Deadline),
 			RequiresLeader: in.RequiresLeader,
 		},
 		in.Events...,

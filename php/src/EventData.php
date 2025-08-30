@@ -2,28 +2,44 @@
 
 namespace KurrentDB;
 
-use JsonSerializable;
+use Ramsey\Uuid\Uuid;
 
-final class EventData implements JsonSerializable
+final class EventData
 {
     public function __construct(
-        public string      $eventId,
-        public string      $eventType,
-        public             $data,
-        public             $metadata = null,
-        public ContentType $contentType = ContentType::Json,
+        public string            $eventId,          // canonical UUID string
+        public string            $eventType,
+        public array|string      $data,
+        public array|string|null $metadata = null,
+        public ContentType       $contentType = ContentType::Json,
     )
     {
     }
 
-    public function jsonSerialize(): array
+    public function toArray(): array
     {
+        $eventIdBin = Uuid::fromString($this->eventId)->getBytes(); // 16 bytes
+
+        $data = $this->data;
+        if ($this->contentType === ContentType::Json && is_array($data)) {
+            $data = json_encode($data, JSON_UNESCAPED_SLASHES);
+        } else {
+            $data = (string)$data; // raw/binary ok
+        }
+
+        $meta = $this->metadata;
+        if ($meta !== null) {
+            $meta = ($this->contentType === ContentType::Json && is_array($meta))
+                ? json_encode($meta, JSON_UNESCAPED_SLASHES)
+                : (string)$meta;
+        }
+
         return [
-            'EventID' => $this->eventId,
+            'EventID' => $eventIdBin,                 // 16-byte bin → UUID ok
             'EventType' => $this->eventType,
-            'ContentType' => $this->contentType->value,
-            'Data' => base64_encode(json_encode($this->data)),
-            'Metadata' => $this->metadata !== null ? base64_encode(json_encode($this->metadata)) : '',
+            'ContentType' => $this->contentType->value,   // string alias in Go
+            'Data' => $data,                       // []byte in Go
+            'Metadata' => $meta,                       // []byte or nil
         ];
     }
 }

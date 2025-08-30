@@ -5,6 +5,7 @@ namespace KurrentDB;
 
 use Generator;
 use Spiral\Goridge\Relay;
+use Spiral\Goridge\RPC\Codec\MsgpackCodec;
 use Spiral\Goridge\RPC\RPC as GoridgeRPC;
 use Spiral\RoadRunner\Environment;
 
@@ -17,12 +18,9 @@ final class Client
      */
     public function __construct(?GoridgeRPC $rpc = null)
     {
-        /**
-         * $address = Environment::fromGlobals()->getRPCAddress();
-         * $rpc = new RPC(Relay::create($address));
-         */
         $this->rpc = $rpc ?? new GoridgeRPC(
-            Relay::create(Environment::fromGlobals()->getRPCAddress())
+            Relay::create(Environment::fromGlobals()->getRPCAddress()),
+            new MsgpackCodec()
         );
     }
 
@@ -42,66 +40,20 @@ final class Client
     ): array
     {
         $payload = [
-            'stream' => $stream,
-            'direction' => $direction->value,
-            'maxEvents' => $maxEvents,
-            'from' => $from,
-            'resolveLinkTos' => $resolveLinkTos,
-            'deadline' => $deadline,
-            'requiresLeader' => $requiresLeader,
+            'Stream' => $stream,
+            'Direction' => $direction->value,
+            'MaxEvents' => $maxEvents,
+            'From' => $from instanceof StreamPosition
+                ? ['Kind' => $from->value]
+                : ['Kind' => 'Index', 'Index' => $from],
+            'ResolveLinkTos' => $resolveLinkTos,
+            'Deadline' => $deadline,
+            'RequiresLeader' => $requiresLeader,
         ];
 
         return $this->rpc->call('kurrentdb.ReadStream', $payload);
     }
 
-    /**
-     * Read the whole stream lazily as a Generator. Internally pages with readStreamOnce().
-     *
-     * @return Generator<array> yields each ResolvedEvent (raw array) one-by-one
-     */
-    public function readStreamPaged(
-        string                  $stream,
-        Direction               $direction = Direction::Forwards,
-        StreamPosition|int|null $from = StreamPosition::Start,
-        ?int                    $maxEvents = null,
-        bool                    $resolveLinkTos = false,
-        ?int                    $deadline = null,
-        bool                    $requiresLeader = false,
-        int                     $pageSize = 500
-    ): Generator
-    {
-        $cursor = $from;
-
-        while (true) {
-            $chunk = $this->readStream(
-                stream: $stream,
-                direction: $direction,
-                from: $cursor,
-                maxEvents: $pageSize,
-                resolveLinkTos: $resolveLinkTos,
-                deadline: $deadline,
-                requiresLeader: $requiresLeader,
-            );
-
-            if (empty($chunk)) {
-                break;
-            }
-
-            foreach ($chunk as $resolved) {
-                yield $resolved;
-
-                // advance cursor using the last seen EventNumber
-                if (isset($resolved['Event']['EventNumber'])) {
-                    $cursor = (int)$resolved['Event']['EventNumber'] + 1;
-                }
-            }
-
-            // If we got fewer than pageSize, assume EOF
-            if (count($chunk) < $pageSize) {
-                break;
-            }
-        }
-    }
 
     /**
      * @param string $stream
@@ -120,15 +72,44 @@ final class Client
     ): WriteResult
     {
         $payload = [
-            'stream' => $stream,
-            'events' => $events,
-            'deadline' => $deadline,
-            'streamState' => $streamState,
-            'requiresLeader' => $requiresLeader,
+            'Stream' => $stream,
+            'Events' => array_map(fn(EventData $e) => $e->toArray(), $events),
+            'Deadline' => $deadline,
+            'StreamState' => $streamState instanceof StreamState
+                ? ['Kind' => $streamState->value]
+                : ['Kind' => 'Revision', 'Revision' => $streamState],
+            'RequiresLeader' => $requiresLeader,
         ];
 
         $response = $this->rpc->call('kurrentdb.AppendToStream', $payload);
         return WriteResult::fromRpc($response);
+    }
+
+    /**
+     * @param string $stream
+     * @param StreamState|int $streamState Stream state or revision
+     * @param int|null $deadline
+     * @param bool $requiresLeader
+     * @return DeleteResult
+     */
+    public function deleteStream(
+        string          $stream,
+        StreamState|int $streamState = StreamState::Any,
+        ?int            $deadline = null,
+        bool            $requiresLeader = false
+    ): DeleteResult
+    {
+        $payload = [
+            'Stream' => $stream,
+            'Deadline' => $deadline,
+            'StreamState' => $streamState instanceof StreamState
+                ? ['Kind' => $streamState->value]
+                : ['Kind' => 'Revision', 'Revision' => $streamState],
+            'RequiresLeader' => $requiresLeader,
+        ];
+
+        $response = $this->rpc->call('kurrentdb.DeleteStream', $payload);
+        return DeleteResult::fromRpc($response);
     }
 
 }

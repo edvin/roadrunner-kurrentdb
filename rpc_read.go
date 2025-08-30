@@ -5,26 +5,25 @@ import (
 	"errors"
 	"io"
 	"math"
-	"time"
 
 	"github.com/kurrent-io/KurrentDB-Client-Go/kurrentdb"
 )
 
 type ReadStreamRequest struct {
 	// The stream to read from
-	Stream string `json:"stream"`
+	Stream string `msgpack:"Stream"`
 	// The maximum number of events to read.
-	MaxEvents *uint64 `json:"maxEvents"`
+	MaxEvents *uint64 `msgpack:"MaxEvents"`
 	// Direction to read in the stream
-	Direction int `json:"direction"`
+	Direction int `msgpack:"Direction"`
 	// Starting position of the read request.
-	From *From `json:"from"`
+	From *From `msgpack:"From"`
 	// Whether the read request should resolve linkTo events to their linked events.
-	ResolveLinkTos bool `json:"resolveLinkTos"`
+	ResolveLinkTos bool `msgpack:"ResolveLinkTos"`
 	// A length of time to use for gRPC deadlines.
-	Deadline *time.Duration `json:"deadline"`
+	Deadline *int64 `msgpack:"Deadline"`
 	// Requires the request to be performed by the leader of the cluster.
-	RequiresLeader bool `json:"requiresLeader"`
+	RequiresLeader bool `msgpack:"RequiresLeader"`
 }
 
 func (r *ReadStreamRequest) toReadStreamOptions() kurrentdb.ReadStreamOptions {
@@ -32,7 +31,7 @@ func (r *ReadStreamRequest) toReadStreamOptions() kurrentdb.ReadStreamOptions {
 		Direction:      kurrentdb.Direction(r.Direction),
 		From:           r.GetFrom(),
 		ResolveLinkTos: r.ResolveLinkTos,
-		Deadline:       r.Deadline,
+		Deadline:       deadlineMsToDuration(r.Deadline),
 		RequiresLeader: r.RequiresLeader,
 	}
 }
@@ -43,11 +42,11 @@ func (r *ReadStreamRequest) GetFrom() kurrentdb.StreamPosition {
 	}
 
 	switch r.From.Kind {
-	case "start":
+	case "Start":
 		return kurrentdb.Start{}
-	case "end":
+	case "End":
 		return kurrentdb.End{}
-	case "index":
+	case "Index":
 		return kurrentdb.Revision(uint64(*r.From.Index))
 	default:
 		panic("invalid from")

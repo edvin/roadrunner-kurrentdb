@@ -4,8 +4,8 @@ namespace KurrentDB;
 
 enum StreamPosition: string implements \JsonSerializable
 {
-    case Start = 'start';
-    case End = 'end';
+    case Start = 'Start';
+    case End = 'End';
 
     public function jsonSerialize(): string
     {
