@@ -1,4 +1,14 @@
 version: '3'
 
+server:
+  command: "php -d auto_prepend_file=php/vendor/autoload.php php/psr-worker.php"
+  pipes: true
+
+http:
+  address: 0.0.0.0:8080
+
+rpc:
+  listen: tcp://127.0.0.1:6001
+
 kurrentdb:
-  address: esdb://some.cloud
+  address: "kurrentdb://127.0.0.1:2113?tls=false"

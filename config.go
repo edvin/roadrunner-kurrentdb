@@ -6,6 +6,6 @@ type Config struct {
 
 func (cfg *Config) InitDefaults() {
 	if cfg.Address == "" {
-		cfg.Address = "esdb://localhost:2113"
+		cfg.Address = "kurrentdb+discover://admin:changeit@localhost:2113"
 	}
 }
